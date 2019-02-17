@@ -5,7 +5,7 @@
 #SBATCH --nodes=1   # number of nodes
 ##SBATCH --exclusive   # number of nodes
 #SBATCH --mem-per-cpu=16000M   # memory per CPU core
-#SBATCH --gres=gpu:3
+#SBATCH --gres=gpu:4
 #SBATCH --output="./status.slurm"
 #SBATCH --constraint rhel7
 

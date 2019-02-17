@@ -9,16 +9,27 @@ import os
 import cutils
 
 def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, multi_gpu=False):
-    if model_name == "resnet50":
-        model = models.resnet50(pretrained=True)
+    if "resnet" in model_name:
+        if model_name == "resnet50":
+            model = models.resnet50(pretrained=True)
+        elif model_name == "resnet18":
+            model = models.resnet18(pretrained=True)
+
         n_inputs = model.fc.in_features
-    elif model_name == "resnet18":
-        model = models.resnet18(pretrained=True)
-        n_inputs = model.fc.in_features
+        model.fc = nn.Sequential(
+                      nn.Linear(n_inputs, 256),
+                      nn.ReLU(),
+                      nn.Dropout(0.4),
+                      nn.Linear(256, n_classes))
+
     elif model_name == "vgg16":
         model = models.vgg16(pretrained=True)
         n_inputs = model.classifier[6].in_features
-
+        model.classifier[6] = nn.Sequential(
+                      nn.Linear(n_inputs, 256),
+                      nn.ReLU(),
+                      nn.Dropout(0.4),
+                      nn.Linear(256, n_classes))
     # Loop through model
     # for child in model.children():
 
@@ -27,12 +38,7 @@ def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, mult
         param.requires_grad = False
 
     # output layer
-    model.classifier[6] = nn.Sequential(
-                      nn.Linear(n_inputs, 256),
-                      nn.ReLU(),
-                      nn.Dropout(0.4),
-                      nn.Linear(256, n_classes))
-                      #nn.LogSoftmax(dim=1)
+
 
     total_params = sum(p.numel() for p in model.parameters())
     print(f'{total_params:,} total parameters.')
