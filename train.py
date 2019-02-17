@@ -146,7 +146,7 @@ def train(model,
         start = timer()
 
         valid_loader = train_loader if valid_loader is None else valid_loader
-
+        
         # Training loop
         for ii, (data, target) in enumerate(train_loader):
             # Tensors to gpu
@@ -191,7 +191,7 @@ def train(model,
                 model.eval()
 
                 # Validation loop
-                if not valid_loader is None:
+                if not valid_loader is None or train_loader==valid_loader:
                     for data, target in valid_loader:
                         # Tensors to gpu
                         if train_on_gpu:
