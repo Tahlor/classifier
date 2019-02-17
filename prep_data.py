@@ -126,7 +126,9 @@ if __name__=="__main__":
     input_folder = r"../data/carvana/masked_images2/"
     output_folder = r"../data/carvana/masked_images_small/"
     cutils.mkdir(output_folder)
-    for f in os.path.list(input_folder):
-        output_path = os.path.join(output_folder, f)
-        input_path = os.path.join(input_folder, f)
-        process_image(input_path, output_path=output_path)
+    for ds,ss,fs in os.walk(input_folder):
+        for f in fs:
+            if f[-4:]==".png":
+                output_path = os.path.join(output_folder, f)
+                input_path = os.path.join(ds, f)
+                process_image(input_path, output_path=output_path)
