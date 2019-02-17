@@ -62,7 +62,7 @@ model = train.initialize_model(config["model"], n_classes=classes, train_on_gpu=
 
 ## Define optimizer
 #criterion = nn.NLLLoss()
-criterion = nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss(weight=torch.Tensor(transformed_dataset.class_weights))
 
 ## Load checkpoint as needed
 if not config["load_checkpoint_path"] is None:
@@ -75,7 +75,7 @@ trainiter = iter(dataloaders['train'])
 features, labels = next(trainiter)
 
 chk_pt = cutils.checkpoint(config["checkpoint_folder"])
-print(chk_pt)
+print("Checkpoint_path: {}".format(chk_pt))
 model, history = train.train(
     model,
     criterion,

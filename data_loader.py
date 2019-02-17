@@ -31,11 +31,17 @@ class CarDataLoader(Dataset):
 
         # Exclude images without labels
         self.verify()
-
         self.labels = np.array((self.meta_data["model"]).drop_duplicates())
-        #print(np.min(self.meta_data.model_code))
-        # with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-        #     print(self.meta_data.model_code)
+
+        ## Weight the loss
+        self.counts = self.meta_data['model_code'].value_counts(normalize=True)
+        self.inverted_weights = 1/self.counts
+        self.class_weights = ((self.inverted_weights - self.inverted_weights.mean()) / self.inverted_weights.std() + 1.5).values
+
+        #self.inverted_weights = self.inverted_weights/self.inverted_weights.sum()
+        #print(self.meta_data.model_code)
+        #print(self.inverted_weights)
+        #print(self.inverted_weights.sum())
 
     def verify(self):
         bad_files = []
@@ -46,7 +52,7 @@ class CarDataLoader(Dataset):
         for img in bad_files:
             self.image_files.remove(img)
         print("Bad files: {}".format(bad_files))
-		
+
     def classes_count(self):
         return len(self.labels)
 
@@ -105,6 +111,7 @@ def create_h5(path, meta_data, input_folder):
 
 
 if __name__=="__main__":
+    import matplotlib.pyplot as plt
     meta = r"../data/carvana/metadata.csv"
     image_folder= r"../data/carvana/masked_images_small"
     #create_h5(r"../data/small.h5", meta, image_folder)
@@ -113,3 +120,5 @@ if __name__=="__main__":
     #labels = pd.read_csv(meta)
     print(d.classes_count())
     #print(labels)
+
+

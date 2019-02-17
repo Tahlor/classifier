@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #SBATCH --time=32:00:00   # walltime
-#SBATCH --ntasks=1   # number of processor cores (i.e. tasks)
+#SBATCH --ntasks=8   # number of processor cores (i.e. tasks)
 #SBATCH --nodes=1   # number of nodes
 ##SBATCH --exclusive   # number of nodes
-#SBATCH --mem-per-cpu=16000M   # memory per CPU core
+#SBATCH --mem-per-cpu=8000M   # memory per CPU core
 #SBATCH --gres=gpu:4
 #SBATCH --output="./status.slurm"
 #SBATCH --constraint rhel7

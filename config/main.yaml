@@ -6,10 +6,10 @@ model: vgg16
 #load_checkpoint_path: ./checkpoints/vgg16/1.pt
 load_checkpoint_path:
 checkpoint_folder: ./checkpoints/vgg16/
-batch_size: 64
+batch_size: 128
 epochs: 100
-train_folder: ../data/carvana/masked_images2
-test_folder: ../data/carvana/masked_images2
+train_folder: ../data/carvana/masked_images_small
+test_folder: ../data/carvana/masked_images_small
 
 # data options
 input_dim_a: 3                              # number of image channels [1/3]

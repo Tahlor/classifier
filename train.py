@@ -9,6 +9,16 @@ import os
 import cutils
 
 def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, multi_gpu=False):
+
+    final_layers = lambda n_inputs : nn.Sequential(
+                      nn.Linear(n_inputs, 2048),
+                      nn.ReLU(),
+                      nn.Dropout(0.2), # probability of being 0'd
+                      nn.Linear(2048, 2048),
+                      nn.ReLU(),
+                      nn.Dropout(0.2),  # probability of being 0'd
+                      nn.Linear(2048, n_classes))
+
     if "resnet" in model_name:
         if model_name == "resnet50":
             model = models.resnet50(pretrained=True)
@@ -20,13 +30,7 @@ def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, mult
         # Turn off backprop
         for param in model.parameters():
             param.requires_grad = False
-
-
-        model.fc = nn.Sequential(
-                      nn.Linear(n_inputs, 256),
-                      nn.ReLU(),
-                      nn.Dropout(0.4),
-                      nn.Linear(256, n_classes))
+        model.fc = final_layers(n_inputs)
 
     elif model_name == "vgg16":
         model = models.vgg16(pretrained=True)
@@ -36,11 +40,29 @@ def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, mult
         for param in model.parameters():
             param.requires_grad = False
 
-        model.classifier[6] = nn.Sequential(
-                      nn.Linear(n_inputs, 256),
-                      nn.ReLU(),
-                      nn.Dropout(0.4),
-                      nn.Linear(256, n_classes))
+        model.classifier[6] = final_layers(n_inputs)
+
+    elif model_name == "squeezenet":
+        model = models.squeezenet1_1(pretrained=True)
+        model_conv = models.squeezenet1_1()
+        for name, params in model_conv.named_children():
+            print(name)
+
+        ## How many In_channels are there for the conv layer
+        in_ftrs = model_conv.classifier[1].in_channels
+        ## How many Out_channels are there for the conv layer
+        out_ftrs = model_conv.classifier[1].out_channels
+        ## Converting a sequential layer to list of layers
+        features = list(model_conv.classifier.children())
+        ## Changing the conv layer to required dimension
+        features[1] = nn.Conv2d(in_ftrs, n_classes, kernel_size, stride) # is n_class right here?
+        ## Changing the pooling layer as per the architecture output
+        features[3] = nn.AvgPool2d(12, stride=1)
+        ## Making a container to list all the layers
+        model_conv.classifier = nn.Sequential(*features)
+        ## Mentioning the number of out_put classes
+        model_conv.num_classes = n_classes
+
     # Loop through model
     # for child in model.children():
 
@@ -250,6 +272,13 @@ def train(model,
                             ])
                         return model, history
 
+        try:
+            h =  pd.DataFrame(history, columns=['train_loss', 'valid_loss', 'train_acc', 'valid_acc'])
+            plot_loss(h)
+        except(Exception) as e:
+            print(e)
+            print("Your plot function sucks!")
+
     # Attach the optimizer
     model.optimizer = optimizer
     # Record overall time and print out stats
@@ -264,8 +293,21 @@ def train(model,
     history = pd.DataFrame(
         history,
         columns=['train_loss', 'valid_loss', 'train_acc', 'valid_acc'])
+
     return model, history
 
+
+def plot_loss(history):
+    import matplotlib.pyplot as plt
+    plt.figure(figsize=(8, 6))
+    for c in ['train_loss', 'train_acc']:
+        plt.plot(
+            history[c], label=c)
+    plt.legend()
+    plt.xlabel('Epoch')
+    plt.ylabel('Average Negative Log Likelihood')
+    plt.title('Training and Validation Losses')
+    plt.savefig("./loss.png")
 
 def save_checkpoint(model, path):
     """Save a PyTorch model checkpoint
