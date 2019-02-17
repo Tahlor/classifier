@@ -272,12 +272,12 @@ def train(model,
                             ])
                         return model, history
 
-        try:
-            h =  pd.DataFrame(history, columns=['train_loss', 'valid_loss', 'train_acc', 'valid_acc'])
-            plot_loss(h)
-        except(Exception) as e:
-            print(e)
-            print("Your plot function sucks!")
+        # try:
+        #     h =  pd.DataFrame(history, columns=['train_loss', 'valid_loss', 'train_acc', 'valid_acc'])
+        #     plot_loss(h)
+        # except(Exception) as e:
+        #     print(e)
+        #     print("Your plot function sucks!")
 
     # Attach the optimizer
     model.optimizer = optimizer
