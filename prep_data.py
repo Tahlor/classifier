@@ -131,4 +131,5 @@ if __name__=="__main__":
             if f[-4:]==".png":
                 output_path = os.path.join(output_folder, f)
                 input_path = os.path.join(ds, f)
-                process_image(input_path, output_path=output_path)
+                if not os.path.exists(output_path):
+                    process_image(input_path, output_path=output_path)
