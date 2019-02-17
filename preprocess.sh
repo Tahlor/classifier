@@ -5,8 +5,8 @@
 #SBATCH --nodes=1   # number of nodes
 ##SBATCH --exclusive   # number of nodes
 #SBATCH --mem-per-cpu=16000M   # memory per CPU core
-#SBATCH --gres=gpu:3
-#SBATCH --output="./status.slurm"
+#SBATCH --gres=gpu:1
+#SBATCH --output="./run.slurm"
 #SBATCH --constraint rhel7
 
 # Set the max number of threads to use for programs using OpenMP. Should be <= ppn. Does nothing if the program doesn't use OpenMP.
@@ -31,7 +31,7 @@ which python
 
 #/zhome/tarch/compute/handwriting
 cd /fslhome/tarch/compute/research/cars/classifier
-python -u run.py
+python -u prep_data.py
 
 # To run:
 #sbatch ./run.sh
