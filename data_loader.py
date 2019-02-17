@@ -23,11 +23,19 @@ class CarDataLoader(Dataset):
         self.meta_data = pd.read_csv(csv_file)
         self.root_dir = root_dir
         self.transform = transform
-        self.verify()
-        self.labels = np.array((self.meta_data["model"]).drop_duplicates())
 
+        # Remove missing labels
+        self.meta_data.dropna(subset=['model'], inplace=True)
         self.meta_data["model_code"]=0
         self.meta_data.model_code = self.meta_data.model.astype('category').cat.codes.astype(np.long)
+
+        # Exclude images without labels
+        self.verify()
+
+        self.labels = np.array((self.meta_data["model"]).drop_duplicates())
+        #print(np.min(self.meta_data.model_code))
+        # with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+        #     print(self.meta_data.model_code)
 
     def verify(self):
         bad_files = []
