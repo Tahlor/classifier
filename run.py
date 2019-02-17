@@ -34,7 +34,7 @@ train_on_gpu = cuda.is_available()
 multi_gpu = True if cuda.device_count() > 1 else False
 
 print(config)
-print(os.listdir(config["train_folder"]))
+#print(os.listdir(config["train_folder"]))
 
 # Dataloader iterators
 # data = {

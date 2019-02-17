@@ -37,7 +37,8 @@ class CarDataLoader(Dataset):
                 bad_files.append(img)
         for img in bad_files:
             self.image_files.remove(img)
-
+		print("Bad files: {}".format(bad_files))
+		
     def classes_count(self):
         return len(self.labels)
 
