@@ -318,26 +318,24 @@ def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
 
     """
 
-    # Get the model name
-    model_name = path.split('-')[0]
-    #assert (model_name in ['vgg16', 'resnet50']), "Path must have the correct model name"
-
     # Load in checkpoint
     checkpoint = torch.load(path)
 
-    if model_name == 'vgg16':
+    if "vgg16" in path:
         model = models.vgg16(pretrained=True)
         # Make sure to set parameters as not trainable
         for param in model.parameters():
             param.requires_grad = False
         model.classifier = checkpoint['classifier']
 
-    elif model_name == 'resnet50':
+    elif "resnet50" in path:
         model = models.resnet50(pretrained=True)
         # Make sure to set parameters as not trainable
         for param in model.parameters():
             param.requires_grad = False
         model.fc = checkpoint['fc']
+    else:
+        raise Exception("Unknown pretrained model, should be in checkpoint path")
 
     # Load in the state dict
     model.load_state_dict(checkpoint['state_dict'])
