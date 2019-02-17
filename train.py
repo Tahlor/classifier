@@ -16,6 +16,12 @@ def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, mult
             model = models.resnet18(pretrained=True)
 
         n_inputs = model.fc.in_features
+
+        # Turn off backprop
+        for param in model.parameters():
+            param.requires_grad = False
+
+
         model.fc = nn.Sequential(
                       nn.Linear(n_inputs, 256),
                       nn.ReLU(),
@@ -25,6 +31,11 @@ def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, mult
     elif model_name == "vgg16":
         model = models.vgg16(pretrained=True)
         n_inputs = model.classifier[6].in_features
+
+        # Turn off backprop
+        for param in model.parameters():
+            param.requires_grad = False
+
         model.classifier[6] = nn.Sequential(
                       nn.Linear(n_inputs, 256),
                       nn.ReLU(),
@@ -33,9 +44,6 @@ def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, mult
     # Loop through model
     # for child in model.children():
 
-    # Turn off backprop
-    for param in model.parameters():
-        param.requires_grad = False
 
     # output layer
 
