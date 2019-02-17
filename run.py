@@ -32,6 +32,8 @@ config = cutils.get_config()
 # Whether to train on a gpu
 train_on_gpu = cuda.is_available()
 multi_gpu = True if cuda.device_count() > 1 else False
+if train_on_gpu:
+    torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 print(config)
 #print(os.listdir(config["train_folder"]))
