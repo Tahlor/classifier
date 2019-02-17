@@ -11,3 +11,10 @@ def mkdir(path):
     except:
         pass
 
+
+def checkpoint(path):
+    if os.path.isdir(path) or not os.path.exists(path):
+        mkdir(path)
+        return os.path.join(path, "1.pt")
+    else:
+        return path

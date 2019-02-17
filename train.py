@@ -31,8 +31,8 @@ def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, mult
                       nn.Linear(n_inputs, 256),
                       nn.ReLU(),
                       nn.Dropout(0.4),
-                      nn.Linear(256, n_classes),
-                      nn.LogSoftmax(dim=1))
+                      nn.Linear(256, n_classes))
+                      #nn.LogSoftmax(dim=1)
 
     total_params = sum(p.numel() for p in model.parameters())
     print(f'{total_params:,} total parameters.')
@@ -109,6 +109,8 @@ def train(model,
         model.train()
         start = timer()
 
+        valid_loader = train_loader if valid_loader is None else valid_loader
+
         # Training loop
         for ii, (data, target) in enumerate(train_loader):
             # Tensors to gpu
@@ -174,10 +176,13 @@ def train(model,
                             correct_tensor.type(torch.FloatTensor))
                         # Multiply average accuracy times the number of examples
                         valid_acc += accuracy.item() * data.size(0)
+                else:
+                    valid_acc = train_acc
+                    valid_loss = train_loss
 
                 # Calculate average losses
-                train_loss = train_loss / len(train_loader.dataset)
                 valid_loss = valid_loss / len(valid_loader.dataset)
+                train_loss = train_loss / len(train_loader.dataset)
 
                 # Calculate average accuracy
                 train_acc = train_acc / len(train_loader.dataset)

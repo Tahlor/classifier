@@ -1,3 +1,10 @@
-python-yaml
+pyyaml
 pandas
 scikit-image
+matplotlib
+torchvision
+pytorch
+numpy
+h5py
+
+

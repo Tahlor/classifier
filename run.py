@@ -9,7 +9,7 @@ import torch
 from torch import optim, cuda
 from torch.utils.data import DataLoader, sampler
 import torch.nn as nn
-
+import data_loader
 import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -35,32 +35,34 @@ multi_gpu = True if cuda.device_count() > 1 else False
 
 print(config)
 print(os.listdir(config["train_folder"]))
+
 # Dataloader iterators
-data = {
-    'train':
-    datasets.ImageFolder(root=config["train_folder"], transform=prep_data.image_transforms['train']),
-    'test':
-    datasets.ImageFolder(root=config["test_folder"], transform=prep_data.image_transforms['test'])
-}
+# data = {
+#     'train':
+#     datasets.ImageFolder(root=config["train_folder"], transform=prep_data.image_transforms['train']),
+#     'test':
+#     datasets.ImageFolder(root=config["test_folder"], transform=prep_data.image_transforms['test'])
+# }
+#
+
+transformed_dataset = data_loader.CarDataLoader(csv_file=r"../data/carvana/metadata.csv",
+                                           root_dir=r"../data/carvana/masked_images_small",
+                                           transform=prep_data.image_transforms["train"])
+
+# this returns data, target
 dataloaders = {
-    'train': DataLoader(data['train'], batch_size=config["batch_size"], shuffle=True),
-    'test': DataLoader(data['test'], batch_size=config["batch_size"], shuffle=True)
+    'train': DataLoader(transformed_dataset, batch_size=config["batch_size"], shuffle=True),
+     'test': DataLoader(transformed_dataset, batch_size=config["batch_size"], shuffle=True)
 }
 
-classes = 4
+#train_loader = torch.utils.data.DataLoader(dataset_h5(train_file), batch_size=16, shuffle=True)
+
+classes = transformed_dataset.classes_count()
 model = train.initialize_model(config["model"], n_classes=classes, train_on_gpu=train_on_gpu, multi_gpu=multi_gpu)
 
-## Class procesing
-model.class_to_idx = data['train'].class_to_idx
-model.idx_to_class = {
-    idx: class_
-    for class_, idx in model.class_to_idx.items()
-}
-
-list(model.idx_to_class.items())[:10]
-
 ## Define optimizer
-criterion = nn.NLLLoss()
+#criterion = nn.NLLLoss()
+criterion = nn.CrossEntropyLoss()
 
 ## Load checkpoint as needed
 if not config["load_checkpoint_path"] is None:
@@ -72,13 +74,15 @@ else:
 trainiter = iter(dataloaders['train'])
 features, labels = next(trainiter)
 
+chk_pt = cutils.checkpoint(config["checkpoint_folder"])
+print(chk_pt)
 model, history = train.train(
     model,
     criterion,
     optimizer,
     dataloaders['train'],
     valid_loader=None,
-    save_file_name=config["checkpoint_folder"],
+    save_file_name=chk_pt,
     max_epochs_stop=5,
     n_epochs=config["epochs"],
     print_every=1,

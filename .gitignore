@@ -7,11 +7,11 @@ Notes/
 dev/
 *.log
 *.html
-*.txt
 profile*
 *profile
 *profile*
 cookies*
+checkpoints
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
