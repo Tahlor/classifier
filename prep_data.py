@@ -11,11 +11,10 @@ def get_data(data=r"../data/carvana/metadata.csv"):
     df = pd.read_csv(data)
     return df
 
-
 means = np.array([0.485, 0.456, 0.406]).reshape((3, 1, 1))
 stds = np.array([0.229, 0.224, 0.225]).reshape((3, 1, 1))
 
-def image_to_tensor(image_array):
+def image_to_tensor(image_path):
     # crop again
     # img = img.crop((left, top, right, bottom))
 
@@ -23,7 +22,8 @@ def image_to_tensor(image_array):
     # img = np.array(img).transpose((2, 0, 1)) / 256
 
     # Standardization
-    image = image_array/256 - means
+    image = cv2.imread(image_path)
+    image = image/256 - means
     image = image / stds
     img_tensor = transforms.ToTensor(image)
     return img_tensor
@@ -36,7 +36,6 @@ def process_image(image_path, color=[255,255,255], output_path=None):
     alpha = image[:,:,3]
     image = image[:,:,0:3]
 
-    print(image.shape)
     # handle alpha channel
 
     # choose color mask
@@ -131,5 +130,9 @@ if __name__=="__main__":
             if f[-4:]==".png":
                 output_path = os.path.join(output_folder, f)
                 input_path = os.path.join(ds, f)
-                if not os.path.exists(output_path):
-                    process_image(input_path, output_path=output_path)
+                try:
+                    if not os.path.exists(output_path):
+                        process_image(input_path, output_path=output_path)
+                except(Exception) as e:
+                    print(e)
+                    print(f)

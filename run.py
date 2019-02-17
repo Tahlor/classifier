@@ -42,6 +42,7 @@ data = {
     'test':
     datasets.ImageFolder(root=config["test_folder"], transform=prep_data.image_transforms['test'])
 }
+
 dataloaders = {
     'train': DataLoader(data['train'], batch_size=config["batch_size"], shuffle=True),
     'test': DataLoader(data['test'], batch_size=config["batch_size"], shuffle=True)
