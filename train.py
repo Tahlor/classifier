@@ -277,10 +277,11 @@ def train(model,
                 f'\t\tTraining Accuracy: {100 * train_acc:.2f}%\t Validation Accuracy: {100 * valid_acc:.2f}%'
             )
 
+        save_checkpoint(model, save_file_name)
         # Save the model if validation loss decreases
         if valid_loss < valid_loss_min:
             # Save model
-            torch.save(model.state_dict(), save_file_name)
+            torch.save(model.state_dict(), save_file_name+"_partial")
             # Track improvement
             epochs_no_improve = 0
             valid_loss_min = valid_loss
@@ -336,7 +337,6 @@ def train(model,
         history,
         columns=['train_loss', 'valid_loss', 'train_acc', 'valid_acc'])
 
-    save_checkpoint(model, save_file_name)
     return model, history
 
 
