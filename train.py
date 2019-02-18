@@ -175,8 +175,6 @@ def train(model,
         model (PyTorch model): trained cnn with best weights
         history (DataFrame): history of train and validation loss and accuracy
     """
-    save_checkpoint(model, save_file_name)
-
     # Early stopping intialization
     epochs_no_improve = 0
     valid_loss_min = np.Inf
@@ -192,6 +190,8 @@ def train(model,
         print(f'Starting Training from Scratch.\n')
 
     overall_start = timer()
+
+    save_checkpoint(model, save_file_name)
 
     # Main loop
     for epoch in range(model.epochs, n_epochs+model.epochs):
@@ -376,7 +376,7 @@ def save_checkpoint(model, path):
     checkpoint = {
         'class_to_idx': model.class_to_idx,
         'idx_to_class': model.idx_to_class,
-        'epochs': model_parallel.epochs,
+        'epochs': model.epochs,
         'model_name': model.model_name,
         'scheduler':model.scheduler
     }
