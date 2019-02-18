@@ -188,7 +188,7 @@ def train(model,
     except:
         model.epochs = 0
         print(f'Starting Training from Scratch.\n')
-
+    model.optimizer = optimizer
     overall_start = timer()
 
     save_checkpoint(model, save_file_name)
@@ -399,8 +399,8 @@ def save_checkpoint(model, path):
 
     # Add the optimizer
     checkpoint['state_dict'] = state_dict
-    checkpoint['optimizer'] = model_parallel.optimizer
-    checkpoint['optimizer_state_dict'] = model_parallel.optimizer.state_dict()
+    checkpoint['optimizer'] = model.optimizer
+    checkpoint['optimizer_state_dict'] = model.optimizer.state_dict()
 
     # Save the data to the path
     if os.path.isdir(path):
