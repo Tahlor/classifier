@@ -42,6 +42,11 @@ def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, mult
 
         model.classifier[6] = final_layers(n_inputs)
 
+    elif model_name == "vgg16_full":
+        model = models.vgg16(pretrained=True)
+        n_inputs = model.classifier[6].in_features
+        model.classifier[6] = final_layers(n_inputs)
+
     elif model_name == "squeezenet":
         model = models.squeezenet1_1(pretrained=True)
         model_conv = models.squeezenet1_1()
@@ -81,9 +86,24 @@ def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, mult
 
     if multi_gpu:
         model = nn.DataParallel(model)
-
+    model.model_name = model_name
     return model
 
+def calc_accuracy(output, target, topk=(1,)):
+    """Computes the accuracy over the k top predictions for the specified values of k"""
+    with torch.no_grad():
+        maxk = max(topk)
+        batch_size = target.size(0)
+
+        _, pred = output.topk(maxk, 1, True, True)
+        pred = pred.t()
+        correct = pred.eq(target.view(1, -1).expand_as(pred))
+
+        res = []
+        for k in topk:
+            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
+            res.append(correct_k.mul_(1 / batch_size))
+        return res[0]
 
 def validate(model, criterion, valid_loader, train_on_gpu=True):
     # Don't need to keep track of gradients
@@ -92,7 +112,9 @@ def validate(model, criterion, valid_loader, train_on_gpu=True):
         model.eval()
         valid_loss = 0
         valid_acc = 0
-        for data, target in valid_loader:
+        valid_acc5 = 0
+        items = 0
+        for data, target in valid_loader: # load 1 batch
             # Tensors to gpu
             if train_on_gpu:
                 data, target = data.cuda(), target.cuda()
@@ -106,13 +128,20 @@ def validate(model, criterion, valid_loader, train_on_gpu=True):
             valid_loss += loss.item() * data.size(0)
 
             # Calculate validation accuracy
-            _, pred = torch.max(output, dim=1)
-            correct_tensor = pred.eq(target.data.view_as(pred))
-            accuracy = torch.mean(
-                correct_tensor.type(torch.FloatTensor))
+            # _, pred = torch.max(output, dim=1)
+            # correct_tensor = pred.eq(target.data.view_as(pred))
+            # acc1 = torch.mean(correct_tensor.type(torch.FloatTensor))
+            acc = calc_accuracy(output, target, topk=(1,))
+            acc5 = calc_accuracy(output, target, topk=(5,))
             # Multiply average accuracy times the number of examples
-            valid_acc += accuracy.item() * data.size(0)
-    return valid_acc, valid_loss
+            valid_acc += acc.item() * data.size(0)
+            valid_acc5 += acc5.item() * data.size(0)
+            items += data.size(0)
+            #valid_acc5 += acc5.item() * data.size(0)
+        print(f'Loss: {valid_loss/items:.4f}')
+        print(f'Accuracy: {valid_acc/items:.4f}')
+        print(f'Accuracy5: {valid_acc5/items:.4f}')
+    return valid_acc, valid_acc5, valid_loss
 
 def train(model,
           criterion,
@@ -124,6 +153,8 @@ def train(model,
           n_epochs=20,
           print_every=2,
           train_on_gpu=True,
+          early_stopping=True,
+          scheduler=None,
           interval=5000):
     """Train a PyTorch Model
 
@@ -162,7 +193,7 @@ def train(model,
     overall_start = timer()
 
     # Main loop
-    for epoch in range(n_epochs):
+    for epoch in range(model.epochs, n_epochs+model.epochs):
 
         # keep track of training and validation loss each epoch
         train_loss = 0.0
@@ -214,14 +245,18 @@ def train(model,
                 f'Epoch: {epoch}\t{100 * (ii + 1) / len(train_loader):.2f}% complete. {timer() - start:.2f} seconds elapsed in epoch.',
                 end='\r')
 
-        # Validation loop
+        # Advance epoch
+        if model.scheduler:
+            model.scheduler.step()
         model.epochs += 1
+
+        # Validate loop
         if valid_loader is None or train_loader == valid_loader:
             valid_acc = train_acc
             valid_loss = train_loss
         else:
             print("Running validation set")
-            valid_acc, valid_loss = validate(model=model, criterion=criterion, valid_loader=valid_loader, train_on_gpu=train_on_gpu)
+            valid_acc, valid_acc5, valid_loss = validate(model=model, criterion=criterion, valid_loader=valid_loader, train_on_gpu=train_on_gpu)
 
         # Calculate average losses
         valid_loss = valid_loss / len(valid_loader.dataset)
@@ -256,7 +291,7 @@ def train(model,
         else:
             epochs_no_improve += 1
             # Trigger early stopping
-            if epochs_no_improve >= max_epochs_stop:
+            if epochs_no_improve >= max_epochs_stop and early_stopping:
                 print(
                     f'\nEarly Stopping! Total epochs: {epoch}. Best epoch: {best_epoch} with loss: {valid_loss_min:.2f} and acc: {100 * valid_acc:.2f}%'
                 )
@@ -294,13 +329,14 @@ def train(model,
         f'\nBest epoch: {best_epoch} with loss: {valid_loss_min:.2f} and acc: {100 * valid_acc:.2f}%'
     )
     print(
-        f'{total_time:.2f} total seconds elapsed. {total_time / (epoch):.2f} seconds per epoch.'
+        f'{total_time:.2f} total seconds elapsed. {total_time / (epoch+1):.2f} seconds per epoch.'
     )
     # Format history
     history = pd.DataFrame(
         history,
         columns=['train_loss', 'valid_loss', 'train_acc', 'valid_acc'])
 
+    save_checkpoint(model, save_file_name)
     return model, history
 
 
@@ -329,43 +365,49 @@ def save_checkpoint(model, path):
         None, save the `model` to `path`
     """
 
-    model_name = path.split('-')[0]
-    assert (model_name in ['vgg16', 'resnet50'
-                           ]), "Path must have the correct model name"
-
+    gpu = next(model.parameters()).is_cuda
+    state_dict = model.module.state_dict() if gpu else model.state_dict()
+    print("Saving model {}".format(model.model_name))
     # Basic details
     checkpoint = {
         'class_to_idx': model.class_to_idx,
         'idx_to_class': model.idx_to_class,
         'epochs': model.epochs,
+        'model_name': model.model_name,
+        'scheduler':model.scheduler
     }
 
-    # Extract the final classifier and the state dictionary
-    if model_name == 'vgg16':
-        # Check to see if model was parallelized
-        try:
-            checkpoint['classifier'] = model.module.classifier
-            checkpoint['state_dict'] = model.module.state_dict()
-        except:
-            checkpoint['classifier'] = model.classifier
-            checkpoint['state_dict'] = model.state_dict()
+    ## Add model to path
+    if model.model_name not in path:
+        print("Adding model name to path")
+        path += model.model_name
 
-    elif "resnet" in model_name:
-        try:
+    ## Extract the final classifier and the state dictionary
+    if model.model_name == 'vgg16':
+        # Check to see if model was parallelized
+        if gpu:
+            checkpoint['classifier'] = model.module.classifier
+        else:
+            checkpoint['classifier'] = model.classifier
+
+    elif "resnet" in model.model_name:
+        if gpu:
             checkpoint['fc'] = model.module.fc
-            checkpoint['state_dict'] = model.module.state_dict()
-        except:
+        else:
             checkpoint['fc'] = model.fc
-            checkpoint['state_dict'] = model.state_dict()
+    else:
+        print("Unknown model, saving the whole thing")
+        checkpoint['model'] = model
 
     # Add the optimizer
+    checkpoint['state_dict'] = state_dict
     checkpoint['optimizer'] = model.optimizer
     checkpoint['optimizer_state_dict'] = model.optimizer.state_dict()
 
     # Save the data to the path
-    if os.path.isdir(checkpoint):
-        cutils.mkdir(checkpoint)
-        checkpoint = os.path.join(checkpoint, "1.pt")
+    if os.path.isdir(path):
+        cutils.mkdir(path)
+        path = cutils.increment_path(model.model_name, path)
     torch.save(checkpoint, path)
 
 def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
@@ -373,7 +415,7 @@ def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
 
     Params
     --------
-        path (str): saved model checkpoint. Must start with `model_name-` and end in '.pth'
+        path (str): saved model checkpoint. Path or directory of checkpoints
 
     Returns
     --------
@@ -381,27 +423,49 @@ def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
 
     """
 
+    # Check if directory, if yes, find the one with the biggest number in it
+    if os.path.isdir(path):
+        _, path = cutils.get_max_file(path)
+        if os.path.isdir(path):
+            print("No checkpoint found")
+            return None, None
+
     # Load in checkpoint
     checkpoint = torch.load(path)
 
-    if "vgg16" in path:
+    if "vgg16_full" in path:
+        model_name = "vgg16_full"
+    elif "vgg16" in path:
+        model_name = "vgg16"
+    elif "resnet18" in path:
+        model_name = "resnet18"
+    elif "resnet50" in path:
+        model_name = "resnet18"
+    else:
+        raise Exception("Unknown pretrained model, should be in checkpoint path")
+
+    if model_name == "vgg16_full":
+        model = checkpoint['model']
+    elif model_name == "vgg16":
         model = models.vgg16(pretrained=True)
+
         # Make sure to set parameters as not trainable
         for param in model.parameters():
             param.requires_grad = False
         model.classifier = checkpoint['classifier']
 
-    elif "resnet50" in path:
+    elif "resnet" in model_name:
         model = models.resnet50(pretrained=True)
         # Make sure to set parameters as not trainable
         for param in model.parameters():
             param.requires_grad = False
         model.fc = checkpoint['fc']
     else:
-        raise Exception("Unknown pretrained model, should be in checkpoint path")
+        model = checkpoint['model']
 
     # Load in the state dict
     model.load_state_dict(checkpoint['state_dict'])
+    model.model_name = checkpoint['model_name']
 
     total_params = sum(p.numel() for p in model.parameters())
     print(f'{total_params:,} total parameters.')
@@ -419,6 +483,7 @@ def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
     # Model basics
     model.class_to_idx = checkpoint['class_to_idx']
     model.idx_to_class = checkpoint['idx_to_class']
+    model.scheduler = checkpoint['scheduler']
     model.epochs = checkpoint['epochs']
 
     # Optimizer

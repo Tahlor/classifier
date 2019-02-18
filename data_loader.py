@@ -38,6 +38,10 @@ class CarDataLoader(Dataset):
         self.inverted_weights = 1/self.counts
         self.class_weights = ((self.inverted_weights - self.inverted_weights.mean()) / self.inverted_weights.std() + 1.5).values
 
+        ## Class to index
+        self.idx_to_class = dict(zip(self.meta_data.model_code, self.meta_data.model))
+        self.class_to_idx = dict(zip(self.meta_data.model, self.meta_data.model_code))
+        print(len(self.idx_to_class.items()))
         #self.inverted_weights = self.inverted_weights/self.inverted_weights.sum()
         #print(self.meta_data.model_code)
         #print(self.inverted_weights)

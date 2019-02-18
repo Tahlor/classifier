@@ -30,15 +30,26 @@ def find_files(base, pattern):
     matching_files_and_folders = fnmatch.filter(os.listdir(base), pattern)
     return len(matching_files_and_folders)>0
 
+def get_max_file(path):
+    """
+    Args:
+        path:
+
+    Returns:
+
+    """
+    numbers = [(int(re.search("^[0-9]+", path)[0]),path) for path in os.listdir(path) if re.search("^[0-9]+", path)]
+    n, npath = max(numbers) if numbers else (0, "")
+    return n, os.path.join(path, npath)
+
+
 def increment_path(name = "", base_path="./logs", make_directory=False):
     # Check for existence
     mkdir(base_path)
-    numbers = [int(re.search("^[0-9]+", path)[0]) for path in  os.listdir(base_path) if re.search("^[0-9]+", path)]
-    print(numbers)
-    n = max(numbers)+1 if numbers else 1
+    n, npath = get_max_file(base_path)
 
     # Create
-    logdir = os.path.join(base_path, "{:02d}_{}".format(n,name))
+    logdir = os.path.join(base_path, "{:02d}_{}".format(n+1,name))
     if make_directory:
         mkdir(logdir)
     return logdir
@@ -47,3 +58,5 @@ def increment_path(name = "", base_path="./logs", make_directory=False):
 if __name__=='__main__':
     x = increment_path("vgg16.pt", base_path="logs")
     print(x)
+    y = get_max_file("./checkpoints/vgg16")
+    print(y)
