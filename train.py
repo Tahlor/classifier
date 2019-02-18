@@ -369,17 +369,17 @@ def save_checkpoint(model, path):
     gpu = next(model.parameters()).is_cuda
     state_dict = model.module.state_dict() if gpu else model.state_dict()
     print("Saving model {}".format(model.model_name))
+
+    model_parallel = model.module if gpu else model
+
     # Basic details
     checkpoint = {
         'class_to_idx': model.class_to_idx,
         'idx_to_class': model.idx_to_class,
-        'epochs': model.epochs,
+        'epochs': model_parallel.epochs,
         'model_name': model.model_name,
         'scheduler':model.scheduler
     }
-
-
-    model_parallel = model.module if gpu else model
 
     ## Add model to path
     if model.model_name not in path:
