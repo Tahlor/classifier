@@ -12,6 +12,7 @@ import torch.nn as nn
 import data_loader
 import warnings
 from torch.optim import lr_scheduler
+import argparse
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -29,7 +30,13 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import cutils
 
-config = cutils.get_config()
+parser = argparse.ArgumentParser()
+parser.add_argument('--config',
+    default='./config/main.yaml',
+    help='verbose flag' )
+args = parser.parse_args()
+
+config = cutils.get_config(args.config)
 
 # Whether to train on a gpu
 train_on_gpu = cuda.is_available()

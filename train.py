@@ -175,8 +175,6 @@ def train(model,
         model (PyTorch model): trained cnn with best weights
         history (DataFrame): history of train and validation loss and accuracy
     """
-    save_checkpoint(model, save_file_name)
-
     # Early stopping intialization
     epochs_no_improve = 0
     valid_loss_min = np.Inf
@@ -190,8 +188,10 @@ def train(model,
     except:
         model.epochs = 0
         print(f'Starting Training from Scratch.\n')
-
+    model.optimizer = optimizer
     overall_start = timer()
+
+    save_checkpoint(model, save_file_name)
 
     # Main loop
     for epoch in range(model.epochs, n_epochs+model.epochs):
@@ -376,7 +376,7 @@ def save_checkpoint(model, path):
     checkpoint = {
         'class_to_idx': model.class_to_idx,
         'idx_to_class': model.idx_to_class,
-        'epochs': model_parallel.epochs,
+        'epochs': model.epochs,
         'model_name': model.model_name,
         'scheduler':model.scheduler
     }
@@ -399,8 +399,8 @@ def save_checkpoint(model, path):
 
     # Add the optimizer
     checkpoint['state_dict'] = state_dict
-    checkpoint['optimizer'] = model_parallel.optimizer
-    checkpoint['optimizer_state_dict'] = model_parallel.optimizer.state_dict()
+    checkpoint['optimizer'] = model.optimizer
+    checkpoint['optimizer_state_dict'] = model.optimizer.state_dict()
 
     # Save the data to the path
     if os.path.isdir(path):
