@@ -376,7 +376,7 @@ def save_checkpoint(model, path):
     checkpoint = {
         'class_to_idx': model.class_to_idx,
         'idx_to_class': model.idx_to_class,
-        'epochs': model_parallel.epochs,
+        'epochs': model.epochs,
         'model_name': model.model_name,
         'scheduler':model.scheduler
     }
