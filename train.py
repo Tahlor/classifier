@@ -175,6 +175,7 @@ def train(model,
         model (PyTorch model): trained cnn with best weights
         history (DataFrame): history of train and validation loss and accuracy
     """
+    save_checkpoint(model, save_file_name)
 
     # Early stopping intialization
     epochs_no_improve = 0
