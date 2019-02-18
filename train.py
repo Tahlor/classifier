@@ -85,6 +85,35 @@ def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, mult
     return model
 
 
+def validate(model, criterion, valid_loader, train_on_gpu=True):
+    # Don't need to keep track of gradients
+    with torch.no_grad():
+        # Set to evaluation mode
+        model.eval()
+        valid_loss = 0
+        valid_acc = 0
+        for data, target in valid_loader:
+            # Tensors to gpu
+            if train_on_gpu:
+                data, target = data.cuda(), target.cuda()
+
+            # Forward pass
+            output = model(data)
+
+            # Validation loss
+            loss = criterion(output, target)
+            # Multiply average loss times the number of examples in batch
+            valid_loss += loss.item() * data.size(0)
+
+            # Calculate validation accuracy
+            _, pred = torch.max(output, dim=1)
+            correct_tensor = pred.eq(target.data.view_as(pred))
+            accuracy = torch.mean(
+                correct_tensor.type(torch.FloatTensor))
+            # Multiply average accuracy times the number of examples
+            valid_acc += accuracy.item() * data.size(0)
+    return valid_acc, valid_loss
+
 def train(model,
           criterion,
           optimizer,
@@ -94,7 +123,8 @@ def train(model,
           max_epochs_stop=3,
           n_epochs=20,
           print_every=2,
-          train_on_gpu=True):
+          train_on_gpu=True,
+          interval=5000):
     """Train a PyTorch Model
 
     Params
@@ -146,9 +176,12 @@ def train(model,
         start = timer()
 
         valid_loader = train_loader if valid_loader is None else valid_loader
-        
+
         # Training loop
         for ii, (data, target) in enumerate(train_loader):
+            if ii % interval == 0:
+                #print("Training loss: {}".format(train_loss/ii))
+                pass
             # Tensors to gpu
             if train_on_gpu:
                 data, target = data.cuda(), target.cuda()
@@ -181,96 +214,70 @@ def train(model,
                 f'Epoch: {epoch}\t{100 * (ii + 1) / len(train_loader):.2f}% complete. {timer() - start:.2f} seconds elapsed in epoch.',
                 end='\r')
 
-        # After training loops ends, start validation
+        # Validation loop
+        model.epochs += 1
+        if valid_loader is None or train_loader == valid_loader:
+            valid_acc = train_acc
+            valid_loss = train_loss
         else:
-            model.epochs += 1
+            print("Running validation set")
+            valid_acc, valid_loss = validate(model=model, criterion=criterion, valid_loader=valid_loader, train_on_gpu=train_on_gpu)
 
-            # Don't need to keep track of gradients
-            with torch.no_grad():
-                # Set to evaluation mode
-                model.eval()
+        # Calculate average losses
+        valid_loss = valid_loss / len(valid_loader.dataset)
+        train_loss = train_loss / len(train_loader.dataset)
 
-                # Validation loop
-                if not valid_loader is None or train_loader==valid_loader:
-                    for data, target in valid_loader:
-                        # Tensors to gpu
-                        if train_on_gpu:
-                            data, target = data.cuda(), target.cuda()
+        # Calculate average accuracy
+        train_acc = train_acc / len(train_loader.dataset)
+        valid_acc = valid_acc / len(valid_loader.dataset)
 
-                        # Forward pass
-                        output = model(data)
+        history.append([train_loss, valid_loss, train_acc, valid_acc])
 
-                        # Validation loss
-                        loss = criterion(output, target)
-                        # Multiply average loss times the number of examples in batch
-                        valid_loss += loss.item() * data.size(0)
+        # Print training and validation results
+        if (epoch + 1) % print_every == 0:
+            print(
+                f'\nEpoch: {epoch} \tTraining Loss: {train_loss:.4f} \tValidation Loss: {valid_loss:.4f}'
+            )
+            print(
+                f'\t\tTraining Accuracy: {100 * train_acc:.2f}%\t Validation Accuracy: {100 * valid_acc:.2f}%'
+            )
 
-                        # Calculate validation accuracy
-                        _, pred = torch.max(output, dim=1)
-                        correct_tensor = pred.eq(target.data.view_as(pred))
-                        accuracy = torch.mean(
-                            correct_tensor.type(torch.FloatTensor))
-                        # Multiply average accuracy times the number of examples
-                        valid_acc += accuracy.item() * data.size(0)
-                else:
-                    valid_acc = train_acc
-                    valid_loss = train_loss
+        # Save the model if validation loss decreases
+        if valid_loss < valid_loss_min:
+            # Save model
+            torch.save(model.state_dict(), save_file_name)
+            # Track improvement
+            epochs_no_improve = 0
+            valid_loss_min = valid_loss
+            valid_best_acc = valid_acc
+            best_epoch = epoch
 
-                # Calculate average losses
-                valid_loss = valid_loss / len(valid_loader.dataset)
-                train_loss = train_loss / len(train_loader.dataset)
+        # Otherwise increment count of epochs with no improvement
+        else:
+            epochs_no_improve += 1
+            # Trigger early stopping
+            if epochs_no_improve >= max_epochs_stop:
+                print(
+                    f'\nEarly Stopping! Total epochs: {epoch}. Best epoch: {best_epoch} with loss: {valid_loss_min:.2f} and acc: {100 * valid_acc:.2f}%'
+                )
+                total_time = timer() - overall_start
+                print(
+                    f'{total_time:.2f} total seconds elapsed. {total_time / (epoch+1):.2f} seconds per epoch.'
+                )
 
-                # Calculate average accuracy
-                train_acc = train_acc / len(train_loader.dataset)
-                valid_acc = valid_acc / len(valid_loader.dataset)
+                # Load the best state dict
+                model.load_state_dict(torch.load(save_file_name))
+                # Attach the optimizer
+                model.optimizer = optimizer
 
-                history.append([train_loss, valid_loss, train_acc, valid_acc])
-
-                # Print training and validation results
-                if (epoch + 1) % print_every == 0:
-                    print(
-                        f'\nEpoch: {epoch} \tTraining Loss: {train_loss:.4f} \tValidation Loss: {valid_loss:.4f}'
-                    )
-                    print(
-                        f'\t\tTraining Accuracy: {100 * train_acc:.2f}%\t Validation Accuracy: {100 * valid_acc:.2f}%'
-                    )
-
-                # Save the model if validation loss decreases
-                if valid_loss < valid_loss_min:
-                    # Save model
-                    torch.save(model.state_dict(), save_file_name)
-                    # Track improvement
-                    epochs_no_improve = 0
-                    valid_loss_min = valid_loss
-                    valid_best_acc = valid_acc
-                    best_epoch = epoch
-
-                # Otherwise increment count of epochs with no improvement
-                else:
-                    epochs_no_improve += 1
-                    # Trigger early stopping
-                    if epochs_no_improve >= max_epochs_stop:
-                        print(
-                            f'\nEarly Stopping! Total epochs: {epoch}. Best epoch: {best_epoch} with loss: {valid_loss_min:.2f} and acc: {100 * valid_acc:.2f}%'
-                        )
-                        total_time = timer() - overall_start
-                        print(
-                            f'{total_time:.2f} total seconds elapsed. {total_time / (epoch+1):.2f} seconds per epoch.'
-                        )
-
-                        # Load the best state dict
-                        model.load_state_dict(torch.load(save_file_name))
-                        # Attach the optimizer
-                        model.optimizer = optimizer
-
-                        # Format history
-                        history = pd.DataFrame(
-                            history,
-                            columns=[
-                                'train_loss', 'valid_loss', 'train_acc',
-                                'valid_acc'
-                            ])
-                        return model, history
+                # Format history
+                history = pd.DataFrame(
+                    history,
+                    columns=[
+                        'train_loss', 'valid_loss', 'train_acc',
+                        'valid_acc'
+                    ])
+                return model, history
 
         # try:
         #     h =  pd.DataFrame(history, columns=['train_loss', 'valid_loss', 'train_acc', 'valid_acc'])
