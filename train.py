@@ -377,6 +377,9 @@ def save_checkpoint(model, path):
         'scheduler':model.scheduler
     }
 
+
+    model_parallel = model.module if gpu else model
+
     ## Add model to path
     if model.model_name not in path:
         print("Adding model name to path")
@@ -385,24 +388,18 @@ def save_checkpoint(model, path):
     ## Extract the final classifier and the state dictionary
     if model.model_name == 'vgg16':
         # Check to see if model was parallelized
-        if gpu:
-            checkpoint['classifier'] = model.module.classifier
-        else:
-            checkpoint['classifier'] = model.classifier
+            checkpoint['classifier'] = model_parallel.classifier
 
     elif "resnet" in model.model_name:
-        if gpu:
-            checkpoint['fc'] = model.module.fc
-        else:
-            checkpoint['fc'] = model.fc
+        checkpoint['fc'] = model_parallel.fc
     else:
         print("Unknown model, saving the whole thing")
         checkpoint['model'] = model
 
     # Add the optimizer
     checkpoint['state_dict'] = state_dict
-    checkpoint['optimizer'] = model.optimizer
-    checkpoint['optimizer_state_dict'] = model.optimizer.state_dict()
+    checkpoint['optimizer'] = model_parallel.optimizer
+    checkpoint['optimizer_state_dict'] = model_parallel.optimizer.state_dict()
 
     # Save the data to the path
     if os.path.isdir(path):
