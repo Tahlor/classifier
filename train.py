@@ -24,7 +24,8 @@ def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, mult
             model = models.resnet50(pretrained=True)
         elif model_name == "resnet18":
             model = models.resnet18(pretrained=True)
-
+        elif model_name == "resnet101":
+            model = models.resnet101(pretrained=True)
         n_inputs = model.fc.in_features
 
         # Turn off backprop
@@ -149,7 +150,7 @@ def train(model,
           train_loader,
           valid_loader,
           save_file_name,
-          max_epochs_stop=3,
+          max_epochs_stop=7,
           n_epochs=20,
           print_every=2,
           train_on_gpu=True,
@@ -188,10 +189,10 @@ def train(model,
     except:
         model.epochs = 0
         print(f'Starting Training from Scratch.\n')
+        save_checkpoint(model, save_file_name)
+
     model.optimizer = optimizer
     overall_start = timer()
-
-    save_checkpoint(model, save_file_name)
 
     # Main loop
     for epoch in range(model.epochs, n_epochs+model.epochs):
@@ -422,6 +423,8 @@ def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
     """
 
     # Check if directory, if yes, find the one with the biggest number in it
+    if not os.path.exists(path):
+        cutils.mkdir(path)
     if os.path.isdir(path):
         _, path = cutils.get_max_file(path)
         if os.path.isdir(path):
@@ -438,7 +441,9 @@ def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
     elif "resnet18" in path:
         model_name = "resnet18"
     elif "resnet50" in path:
-        model_name = "resnet18"
+        model_name = "resnet50"
+    elif "resnet101" in path:
+        model_name = "resnet101"
     else:
         raise Exception("Unknown pretrained model, should be in checkpoint path")
 
@@ -453,7 +458,13 @@ def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
         model.classifier = checkpoint['classifier']
 
     elif "resnet" in model_name:
-        model = models.resnet50(pretrained=True)
+        if model_name=="resnet18":
+            model = models.resnet18(pretrained=True)
+        if model_name=="resnet50":
+            model = models.resnet50(pretrained=True)
+        if model_name == "resnet101":
+            model = models.resnet101(pretrained=True)
+
         # Make sure to set parameters as not trainable
         for param in model.parameters():
             param.requires_grad = False
@@ -463,7 +474,6 @@ def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
 
     # Load in the state dict
     model.load_state_dict(checkpoint['state_dict'])
-    model.model_name = checkpoint['model_name']
 
     total_params = sum(p.numel() for p in model.parameters())
     print(f'{total_params:,} total parameters.')
@@ -483,6 +493,7 @@ def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
     model.idx_to_class = checkpoint['idx_to_class']
     model.scheduler = checkpoint['scheduler']
     model.epochs = checkpoint['epochs']
+    model.model_name = checkpoint['model_name']
 
     # Optimizer
     optimizer = checkpoint['optimizer']

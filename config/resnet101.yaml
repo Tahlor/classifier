@@ -2,24 +2,27 @@
 # Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 
 # 
-model: vgg16
-load_checkpoint_path: ./checkpoints/vgg16/01_None
+model: resnet101
+load_checkpoint_path: ./checkpoints/resnet101/
 #load_checkpoint_path:
-checkpoint_folder: ./checkpoints/vgg16/
+checkpoint_folder: ./checkpoints/resnet101/
 batch_size: 128
 epochs: 100
 
 # LR Schedule
 load_schedule: False
-scheduler_step: 4
+scheduler_step: 10
 gamma: 0.8
 
-# 
+# Early stopping
+early_stopping: True
+epochs_no_improvement: 7
+
 train_folder: ../data/carvana/masked_images_small
 test_folder:  ../data/carvana/masked_images_small
 validation_folder:  ../data/carvana/masked_images_small
-early_stopping: False
-train: False
+early_stopping: True
+train: True
 validation: False
 test: True
 

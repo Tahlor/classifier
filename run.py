@@ -1,3 +1,6 @@
+## Learning Rate Scheduler
+##
+
 import prep_data
 import pandas
 from torchvision import models
@@ -30,11 +33,20 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import cutils
 
+### Parser
 parser = argparse.ArgumentParser()
 parser.add_argument('--config',
-    default='./config/main.yaml',
+    default='',
     help='verbose flag' )
 args = parser.parse_args()
+
+if args.config == "":
+    raise Exception("Must specify config")
+# Check config folder
+if args.config[-5:]!=".yaml":
+    args.config += ".yaml"
+if not os.path.exists(args.config):
+    args.config = os.path.join("./config", args.config)
 
 config = cutils.get_config(args.config)
 
@@ -61,10 +73,17 @@ transformed_dataset = data_loader.CarDataLoader(csv_file=r"../data/carvana/metad
                                            root_dir=r"../data/carvana/masked_images_small",
                                            transform=prep_data.image_transforms["train"])
 
+# test_dataset = data_loader.CarDataLoader(csv_file=r"../data/carvana/metadata.csv",
+#                                            root_dir=r"../data/carvana/masked_images_small",
+#                                            transform=prep_data.image_transforms["test"])
+test_dataset = transformed_dataset
+
+
 # this returns data, target
 dataloaders = {
     'train': DataLoader(transformed_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=config["num_workers"]),
-     'test': DataLoader(transformed_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=config["num_workers"])
+     'test': DataLoader(test_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=config["num_workers"]),
+     'validate': DataLoader(test_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=config["num_workers"])
 }
 
 #train_loader = torch.utils.data.DataLoader(dataset_h5(train_file), batch_size=16, shuffle=True)
@@ -84,6 +103,11 @@ model = None
 
 if not config["load_checkpoint_path"] is None:
     model, optimizer = train.load_checkpoint(path=config["load_checkpoint_path"], train_on_gpu=train_on_gpu, multi_gpu=multi_gpu)
+
+    ## Reset scheduler
+    if not model is None and config["scheduler_step"] and config["gamma"] and not config["load_schedule"]:
+        model.scheduler = lr_scheduler.StepLR(optimizer, step_size=config["scheduler_step"], gamma=config["gamma"])
+
 
 # If model was not loaded successfully, create new one
 if model is None:

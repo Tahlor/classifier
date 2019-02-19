@@ -10,8 +10,14 @@ batch_size: 128
 epochs: 100
 
 # LR Schedule
-scheduler_step: 4
+load_schedule: False
+scheduler_step: 10
 gamma: 0.8
+
+# Early stopping
+early_stopping: True
+epochs_no_improvement: 7
+
 train_folder: ../data/carvana/masked_images_small
 test_folder:  ../data/carvana/masked_images_small
 validation_folder:  ../data/carvana/masked_images_small
