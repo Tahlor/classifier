@@ -282,8 +282,9 @@ def train(model,
         save_checkpoint(model, save_file_name)
         # Save the model if validation loss decreases
         if valid_loss < valid_loss_min:
+
             # Save model
-            torch.save(model.state_dict(), save_file_name+"_partial")
+            torch.save(model.state_dict(), "partial_" + save_file_name)
             # Track improvement
             epochs_no_improve = 0
             valid_loss_min = valid_loss
@@ -426,7 +427,7 @@ def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
     if not os.path.exists(path):
         cutils.mkdir(path)
     if os.path.isdir(path):
-        _, path = cutils.get_max_file(path)
+        _, path = cutils.get_max_file(path, ignore="partial")
         if os.path.isdir(path):
             print("No checkpoint found")
             return None, None

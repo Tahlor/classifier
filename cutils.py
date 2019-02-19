@@ -15,7 +15,9 @@ def mkdir(path):
 
 
 def checkpoint(path, name=None):
-    """
+    """ Check if check point is a directory. If it is, create a new checkpoint in the directory that increments previous.
+        Return unchanged if anything else
+
     Path - a folder - create next new checkpoint
     Path - do nothing
     """
@@ -30,23 +32,27 @@ def find_files(base, pattern):
     matching_files_and_folders = fnmatch.filter(os.listdir(base), pattern)
     return len(matching_files_and_folders)>0
 
-def get_max_file(path):
-    """
+def get_max_file(path, ignore=None):
+    """ Gets the file with the highest (first) number in the string, ignoring the "ignore" string
     Args:
-        path:
-
+        path (str): Folder to search
     Returns:
 
     """
-    numbers = [(int(re.search("^[0-9]+", path)[0]),path) for path in os.listdir(path) if re.search("^[0-9]+", path)]
+    if ignore:
+        filtered = [p for p in os.listdir(path) if not re.search(ignore, p)]
+    else:
+        filtered = os.listdir(path)
+    numbers = [(int(re.search("^[0-9]+", p)[0]), p) for p in filtered if re.search("^[0-9]+", p)]
     n, npath = max(numbers) if numbers else (0, "")
+    print("Last File Version: {}".format(npath))
     return n, os.path.join(path, npath)
 
 
-def increment_path(name = "", base_path="./logs", make_directory=False):
+def increment_path(name = "", base_path="./logs", make_directory=False, ignore="partial"):
     # Check for existence
     mkdir(base_path)
-    n, npath = get_max_file(base_path)
+    n, npath = get_max_file(base_path, ignore=ignore)
 
     # Create
     logdir = os.path.join(base_path, "{:02d}_{}".format(n+1,name))

@@ -6,7 +6,7 @@
 ##SBATCH --exclusive   # number of nodes
 #SBATCH --mem-per-cpu=8000M   # memory per CPU core
 #SBATCH --gres=gpu:4
-#SBATCH --output="./resnet101.slurm"
+#SBATCH --output="./vgg16.slurm"
 #SBATCH --constraint rhel7
 
 # Set the max number of threads to use for programs using OpenMP. Should be <= ppn. Does nothing if the program doesn't use OpenMP.
@@ -31,7 +31,7 @@ which python
 
 #/zhome/tarch/compute/handwriting
 cd /fslhome/tarch/compute/research/cars/classifier
-python -u run.py --config resnet101
+python -u run.py --config main.yaml
 
 # To run:
 #sbatch ./run.sh
