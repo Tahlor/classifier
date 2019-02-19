@@ -6,7 +6,7 @@
 ##SBATCH --exclusive   # number of nodes
 #SBATCH --mem-per-cpu=16000M   # memory per CPU core
 #SBATCH --gres=gpu:1
-#SBATCH --output="./status.slurm"
+#SBATCH --output="./test.slurm"
 #SBATCH --constraint rhel7
 
 # Set the max number of threads to use for programs using OpenMP. Should be <= ppn. Does nothing if the program doesn't use OpenMP.
