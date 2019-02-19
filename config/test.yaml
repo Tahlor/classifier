@@ -3,7 +3,7 @@
 
 # 
 model: vgg16
-load_checkpoint_path: ./checkpoints/vgg16/
+load_checkpoint_path: ./checkpoints/vgg16/01_None
 #load_checkpoint_path:
 checkpoint_folder: ./checkpoints/vgg16/
 batch_size: 128
@@ -16,7 +16,7 @@ train_folder: ../data/carvana/masked_images_small
 test_folder:  ../data/carvana/masked_images_small
 validation_folder:  ../data/carvana/masked_images_small
 early_stopping: True
-train: True
+train: False
 validation: False
 test: True
 
