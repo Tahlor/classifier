@@ -290,7 +290,7 @@ def train(model,
         if valid_loss < valid_loss_min:
 
             # Save model
-            torch.save(model.state_dict(), "partial_" + save_file_name)
+            torch.save(model.state_dict(), save_file_name+"_partial")
             # Track improvement
             epochs_no_improve = 0
             valid_loss_min = valid_loss
@@ -374,8 +374,13 @@ def save_checkpoint(model, path):
         None, save the `model` to `path`
     """
 
+    ## This is a hack, should be if multi GPU
     gpu = next(model.parameters()).is_cuda
-    state_dict = model.module.state_dict() if gpu else model.state_dict()
+    if gpu:
+        try:
+            state_dict = model.module.state_dict()
+        except:
+            state_dict = model.state_dict()
     print("Saving model {}".format(model.model_name))
 
     model_parallel = model.module if gpu else model
@@ -395,7 +400,9 @@ def save_checkpoint(model, path):
         path += model.model_name
 
     ## Extract the final classifier and the state dictionary
-    if model.model_name == 'vgg16':
+    if "_full" in model.model_name:
+        checkpoint['model'] = model_parallel
+    elif model.model_name == 'vgg16':
         # Check to see if model was parallelized
             checkpoint['classifier'] = model_parallel.classifier
 
