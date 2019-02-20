@@ -408,6 +408,7 @@ def save_checkpoint(model, path):
     if os.path.isdir(path):
         cutils.mkdir(path)
         path = cutils.increment_path(model.model_name, path)
+        print("Saving to model {}".format(path))
     torch.save(checkpoint, path)
 
 def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):

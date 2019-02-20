@@ -45,7 +45,7 @@ def get_max_file(path, ignore=None):
         filtered = os.listdir(path)
     numbers = [(int(re.search("^[0-9]+", p)[0]), p) for p in filtered if re.search("^[0-9]+", p)]
     n, npath = max(numbers) if numbers else (0, "")
-    print("Last File Version: {}".format(npath))
+    #print("Last File Version: {}".format(npath))
     return n, os.path.join(path, npath)
 
 
