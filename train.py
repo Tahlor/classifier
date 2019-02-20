@@ -92,6 +92,7 @@ def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, mult
 
     if multi_gpu:
         model = nn.DataParallel(model)
+
     model.model_name = model_name
     return model
 
@@ -187,6 +188,7 @@ def train(model,
 
     valid_max_acc = 0
     history = []
+    model.optimizer = optimizer
 
     # Number of epochs already trained (if using loaded in model weights)
     try:
@@ -196,7 +198,6 @@ def train(model,
         print(f'Starting Training from Scratch.\n')
         save_checkpoint(model, save_file_name)
 
-    model.optimizer = optimizer
     overall_start = timer()
 
     # Main loop
@@ -261,7 +262,7 @@ def train(model,
         if valid_loader is None or train_loader == valid_loader:
             valid_acc = train_acc
             valid_loss = train_loss
-        else:
+        elif epoch % 5 == 0:
             print("Running validation set")
             valid_acc, valid_acc5, valid_loss = validate(model=model, criterion=criterion, valid_loader=valid_loader, train_on_gpu=train_on_gpu)
 
@@ -287,8 +288,9 @@ def train(model,
         save_checkpoint(model, save_file_name)
         # Save the model if validation loss decreases
         if valid_loss < valid_loss_min:
+
             # Save model
-            torch.save(model.state_dict(), save_file_name+"_partial")
+            torch.save(model.state_dict(), "partial_" + save_file_name)
             # Track improvement
             epochs_no_improve = 0
             valid_loss_min = valid_loss
@@ -431,7 +433,7 @@ def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
     if not os.path.exists(path):
         cutils.mkdir(path)
     if os.path.isdir(path):
-        _, path = cutils.get_max_file(path)
+        _, path = cutils.get_max_file(path, ignore="partial")
         if os.path.isdir(path):
             print("No checkpoint found")
             return None, None
