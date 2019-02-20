@@ -19,7 +19,12 @@ def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, mult
                       nn.Dropout(0.2),  # probability of being 0'd
                       nn.Linear(2048, n_classes))
 
-    if "resnet" in model_name:
+    if "resnet101_full" == model_name:
+        model = models.resnet101(pretrained=True)
+        n_inputs = model.fc.in_features
+        model.fc = final_layers(n_inputs)
+
+    elif "resnet" in model_name:
         if model_name == "resnet50":
             model = models.resnet50(pretrained=True)
         elif model_name == "resnet18":
@@ -436,6 +441,8 @@ def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
 
     if "vgg16_full" in path:
         model_name = "vgg16_full"
+    elif "resnet101_full" in path:
+        model_name = "resnet101_full"
     elif "vgg16" in path:
         model_name = "vgg16"
     elif "resnet18" in path:
@@ -447,7 +454,7 @@ def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
     else:
         raise Exception("Unknown pretrained model, should be in checkpoint path")
 
-    if model_name == "vgg16_full":
+    if "_full" in model_name:
         model = checkpoint['model']
     elif model_name == "vgg16":
         model = models.vgg16(pretrained=True)
