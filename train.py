@@ -19,7 +19,12 @@ def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, mult
                       nn.Dropout(0.2),  # probability of being 0'd
                       nn.Linear(2048, n_classes))
 
-    if "resnet" in model_name:
+    if "resnet101_full" == model_name:
+        model = models.resnet101(pretrained=True)
+        n_inputs = model.fc.in_features
+        model.fc = final_layers(n_inputs)
+
+    elif "resnet" in model_name:
         if model_name == "resnet50":
             model = models.resnet50(pretrained=True)
         elif model_name == "resnet18":
@@ -87,6 +92,7 @@ def initialize_model(model_name="vgg16", n_classes=None, train_on_gpu=True, mult
 
     if multi_gpu:
         model = nn.DataParallel(model)
+
     model.model_name = model_name
     return model
 
@@ -182,6 +188,7 @@ def train(model,
 
     valid_max_acc = 0
     history = []
+    model.optimizer = optimizer
 
     # Number of epochs already trained (if using loaded in model weights)
     try:
@@ -191,7 +198,6 @@ def train(model,
         print(f'Starting Training from Scratch.\n')
         save_checkpoint(model, save_file_name)
 
-    model.optimizer = optimizer
     overall_start = timer()
 
     # Main loop
@@ -256,7 +262,7 @@ def train(model,
         if valid_loader is None or train_loader == valid_loader:
             valid_acc = train_acc
             valid_loss = train_loss
-        else:
+        elif epoch % 5 == 0:
             print("Running validation set")
             valid_acc, valid_acc5, valid_loss = validate(model=model, criterion=criterion, valid_loader=valid_loader, train_on_gpu=train_on_gpu)
 
@@ -284,7 +290,7 @@ def train(model,
         if valid_loss < valid_loss_min:
 
             # Save model
-            torch.save(model.state_dict(), "partial_" + save_file_name)
+            torch.save(model.state_dict(), save_file_name+"_partial")
             # Track improvement
             epochs_no_improve = 0
             valid_loss_min = valid_loss
@@ -368,8 +374,13 @@ def save_checkpoint(model, path):
         None, save the `model` to `path`
     """
 
+    ## This is a hack, should be if multi GPU
     gpu = next(model.parameters()).is_cuda
-    state_dict = model.module.state_dict() if gpu else model.state_dict()
+    if gpu:
+        try:
+            state_dict = model.module.state_dict()
+        except:
+            state_dict = model.state_dict()
     print("Saving model {}".format(model.model_name))
 
     model_parallel = model.module if gpu else model
@@ -389,7 +400,9 @@ def save_checkpoint(model, path):
         path += model.model_name
 
     ## Extract the final classifier and the state dictionary
-    if model.model_name == 'vgg16':
+    if "_full" in model.model_name:
+        checkpoint['model'] = model_parallel
+    elif model.model_name == 'vgg16':
         # Check to see if model was parallelized
             checkpoint['classifier'] = model_parallel.classifier
 
@@ -438,6 +451,8 @@ def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
 
     if "vgg16_full" in path:
         model_name = "vgg16_full"
+    elif "resnet101_full" in path:
+        model_name = "resnet101_full"
     elif "vgg16" in path:
         model_name = "vgg16"
     elif "resnet18" in path:
@@ -449,7 +464,7 @@ def load_checkpoint(path, train_on_gpu=True, multi_gpu=False):
     else:
         raise Exception("Unknown pretrained model, should be in checkpoint path")
 
-    if model_name == "vgg16_full":
+    if "_full" in model_name:
         model = checkpoint['model']
     elif model_name == "vgg16":
         model = models.vgg16(pretrained=True)

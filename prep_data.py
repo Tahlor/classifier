@@ -124,8 +124,8 @@ image_transforms = {
 
 
 if __name__=="__main__":
-    input_folder = r"../data/carvana/masked_images2/"
-    output_folder = r"../data/carvana/masked_images_small/"
+    input_folder = r"../data/carvana/masked_images_validation/"
+    output_folder = r"../data/carvana/masked_images_validation_small/"
     cutils.mkdir(output_folder)
     for ds,ss,fs in os.walk(input_folder):
         for f in fs:

@@ -136,7 +136,7 @@ if config["train"]:
         criterion,
         optimizer,
         dataloaders['train'],
-        valid_loader=None,
+        valid_loader=dataloaders['validate'],
         save_file_name=chk_pt,
         max_epochs_stop=5,
         n_epochs=config["epochs"],
