@@ -159,6 +159,7 @@ def train(model,
           max_epochs_stop=7,
           n_epochs=20,
           print_every=2,
+          validate_every=2,
           train_on_gpu=True,
           early_stopping=True,
           scheduler=None,
@@ -259,12 +260,12 @@ def train(model,
         model.epochs += 1
 
         # Validate loop
-        if valid_loader is None or train_loader == valid_loader:
-            valid_acc = train_acc
-            valid_loss = train_loss
-        elif epoch % 5 == 0:
+        if validate_every > 0 and epoch % validate_every == 0:
             print("Running validation set")
             valid_acc, valid_acc5, valid_loss = validate(model=model, criterion=criterion, valid_loader=valid_loader, train_on_gpu=train_on_gpu)
+        else:
+            valid_acc = train_acc
+            valid_loss = train_loss
 
         # Calculate average losses
         valid_loss = valid_loss / len(valid_loader.dataset)

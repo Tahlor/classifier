@@ -21,10 +21,12 @@ epochs_no_improvement: 7
 train_folder: ../data/carvana/masked_images_small
 test_folder:  ../data/carvana/masked_images_small
 validation_folder:  ../data/carvana/masked_images_small
+label_path: ../data/carvana/metadata.csv
+
 early_stopping: True
 train: False
-validation: False
 test: True
+validate_every_X_epochs: 2
 
 # data options
 class_weighting: False

@@ -69,15 +69,13 @@ print(config)
 # }
 #
 
-transformed_dataset = data_loader.CarDataLoader(csv_file=r"../data/carvana/metadata.csv",
-                                           root_dir=r"../data/carvana/masked_images_small",
+transformed_dataset = data_loader.CarDataLoader(csv_file=config["label_path"],
+                                           root_dir=config["train_folder"],
                                            transform=prep_data.image_transforms["train"])
 
-# test_dataset = data_loader.CarDataLoader(csv_file=r"../data/carvana/metadata.csv",
-#                                            root_dir=r"../data/carvana/masked_images_small",
-#                                            transform=prep_data.image_transforms["test"])
-test_dataset = transformed_dataset
-
+test_dataset = data_loader.CarDataLoader(csv_file=config["label_path"],
+                                           root_dir=config["test_folder"],
+                                           transform=prep_data.image_transforms["test"])
 
 # this returns data, target
 dataloaders = {
@@ -141,6 +139,7 @@ if config["train"]:
         max_epochs_stop=5,
         n_epochs=config["epochs"],
         print_every=1,
+        validate_every=config["validate_every_X_epochs"],
         train_on_gpu=train_on_gpu,
         early_stopping=config["early_stopping"])
 
