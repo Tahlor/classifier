@@ -73,15 +73,14 @@ transformed_dataset = data_loader.CarDataLoader(csv_file=config["label_path"],
                                            root_dir=config["train_folder"],
                                            transform=prep_data.image_transforms["train"])
 
-test_dataset = data_loader.CarDataLoader(csv_file=config["label_path"],
-                                           root_dir=config["test_folder"],
-                                           transform=prep_data.image_transforms["test"])
+test_dataset = transformed_dataset.copy(config["test_folder"],transform=prep_data.image_transforms["test"])
+validation_dataset = transformed_dataset.copy(config["validation_folder"],transform=prep_data.image_transforms["test"])
 
 # this returns data, target
 dataloaders = {
     'train': DataLoader(transformed_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=config["num_workers"]),
      'test': DataLoader(test_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=config["num_workers"]),
-     'validate': DataLoader(test_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=config["num_workers"])
+     'validate': DataLoader(validation_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=config["num_workers"])
 }
 
 #train_loader = torch.utils.data.DataLoader(dataset_h5(train_file), batch_size=16, shuffle=True)

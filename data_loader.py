@@ -7,6 +7,7 @@ import h5py
 import numpy as np
 import torch
 from PIL import Image
+import copy
 
 class CarDataLoader(Dataset):
     """Face Landmarks dataset."""
@@ -79,6 +80,12 @@ class CarDataLoader(Dataset):
         #one_hot = (model.values[0]==self.labels).astype(int)
         return image, model_idx
 
+    def copy(self, new_folder, transform=None):
+        new_loader = copy.deepcopy(self)
+        new_loader.image_files = os.listdir(new_folder)
+        new_loader.verify()
+        new_loader.transform=transform
+        return new_loader
 
 class dataset_h5(torch.utils.data.Dataset):
     def __init__(self, in_file):
