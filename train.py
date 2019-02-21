@@ -206,10 +206,7 @@ def train(model,
 
         # keep track of training and validation loss each epoch
         train_loss = 0.0
-        valid_loss = 0.0
-
         train_acc = 0
-        valid_acc = 0
 
         # Set to training
         model.train()
@@ -260,7 +257,7 @@ def train(model,
         model.epochs += 1
 
         # Validate loop
-        if validate_every > 0 and epoch % validate_every == 0:
+        if validate_every and validate_every > 0 and epoch % validate_every == 0:
             print("Running validation set")
             valid_acc, valid_acc5, valid_loss = validate(model=model, criterion=criterion, valid_loader=valid_loader, train_on_gpu=train_on_gpu)
         else:
