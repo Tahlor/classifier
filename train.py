@@ -260,9 +260,12 @@ def train(model,
         if validate_every and validate_every > 0 and epoch % validate_every == 0:
             print("Running validation set")
             valid_acc, valid_acc5, valid_loss = validate(model=model, criterion=criterion, valid_loader=valid_loader, train_on_gpu=train_on_gpu)
-        else:
+        elif not validate_every:
             valid_acc = train_acc
             valid_loss = train_loss
+        else:
+            # Just continue if we're not validating this epoch, but are generally
+            continue
 
         # Calculate average losses
         valid_loss = valid_loss / len(valid_loader.dataset)
